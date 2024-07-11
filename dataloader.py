@@ -5,9 +5,10 @@ from datasets import CustomImageDataset
 
 
 class Dataloader:
-    def __init__(self, data_path, label_path, batch_size):
+    def __init__(self, data_path, label_path, batch_size, is_test=False):
         print('Loading data...')
         self.data_path = data_path
+        self.is_test = is_test
         self.data_transform = dict.fromkeys(("valid", "test"), (transforms.Compose([
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
@@ -23,27 +24,35 @@ class Dataloader:
         ])
 
         self.batch_size = batch_size
-        self.datasets = {
-            x: CustomImageDataset(os.path.join(self.data_path, x), label_path, train=True if not x == 'test' else False,
-                                  transform=self.data_transform[x])
-            for x in ["train", "valid", "test"]}
+        if not is_test:
+            self.datasets = {
+                x: CustomImageDataset(os.path.join(self.data_path, x), label_path, self.is_test,
+                                      transform=self.data_transform[x]) for x in ["train", "valid"]}
+        else:
+
+            self.datasets = CustomImageDataset(os.path.join(self.data_path, 'test'), label_path, self.is_test,
+                                               transform=self.data_transform['test'])
 
     def load_data(self):
 
-        dataloader = {x: DataLoader(self.datasets[x], batch_size=self.batch_size, shuffle=False) for x in
-                      ["train", "valid", "test"]}
-        print("train ", len(self.datasets["train"]))
-        print("valid ", len(self.datasets["valid"]))
-        print("test ", len(self.datasets["test"]))
+        if not self.is_test:
+            dataloader = {x: DataLoader(self.datasets[x], batch_size=self.batch_size, shuffle=False) for x in
+                          ["train", "valid"]}
+            print("train ", len(self.datasets["train"]))
+            print("valid ", len(self.datasets["valid"]))
+        else:
+            dataloader = DataLoader(self.datasets, batch_size=self.batch_size, shuffle=False)
+            print("test ", len(self.datasets))
+
         return dataloader
 
     def get_classes(self):
-        return self.datasets["train"].get_classes()
+        return self.datasets.get_classes()
 
-    def get_ids(self, dataset="test"):
-        ids = sorted(os.listdir(os.path.join(self.data_path, dataset)))
+    def get_ids(self):
+        ids = sorted(os.listdir(os.path.join(self.data_path, 'test')))
         return ids
 
-
-# test_loader = Dataloader('data', 'data/labels.csv', 64)
-# print(len(test_loader.load_data()['test']))
+# test_loader = Dataloader('data', 'data/labels.csv', 64, True)
+# print(test_loader.get_ids())
+# print(len(test_loader.load_data()))

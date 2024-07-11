@@ -4,7 +4,7 @@ import torchvision.models as models
 
 
 class Model(nn.Module):
-    def __init__(self, classes, lr, pretrained=True):
+    def __init__(self, classes, lr):
         super(Model, self).__init__()
         self.model = models.resnet152(weights=models.ResNet152_Weights.DEFAULT)
 
